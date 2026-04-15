@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airdrop Hunter: Neon Edition</title>
+    <style>
+        :root {
+            /* Neon Color Palette */
+            --player: #38bdf8;  /* Vivid Blue */
+            --token: #22c55e;   /* Bright Green */
+            --scam: #ef4444;    /* Crimson Red */
+            --bg: #030712;      /* Near Black */
+            --text: #f1f5f9;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', Courier, monospace; /* Arcade Font Style */
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Rainbow Cycling Border for the game world */
+        #game-container {
+            position: relative;
+            width: 95vw;
+            height: 85vh;
+            background: rgba(17, 24, 39, 0.8);
+            border: 4px solid;
+            border-image: linear-gradient(to bottom right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3) 1;
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
+            margin-top: 10px;
+            cursor: none; /* Hide cursor for immersion */
+            overflow: hidden;
+        }
+
+        /* The Player "Collector" */
+        #player {
+            position: absolute;
+            bottom: 30px;
+            width: 100px; /* Wider for easier play */
+            height: 15px;
+            background: var(--player);
+            border-radius: 50px; /* Rounded pill shape */
+            /* Intense Neon Glow */
+            box-shadow: 0 0 20px var(--player), 0 0 40px var(--player);
+            transition: left 0.05s linear; /* Smooth movement */
+        }
+
+        /* Falling Items Container */
+        .falling-item {
+            position: absolute;
+            user-select: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            transform: rotate(45deg); /* Diamond shape */
+        }
+
+        /* Green Token (Good) */
+        .token {
+            background: var(--token);
+            box-shadow: 0 0 15px var(--token), 0 0 30px var(--token);
+        }
+
+        /* Red Scam Flag (Bad) */
+        .scam {
+            background: var(--scam);
+            box-shadow: 0 0 15px var(--scam), 0 0 30px var(--scam);
+        }
+
+        /* Score UI */
+        #ui {
+            padding: 15px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--token);
+            text-shadow: 0 0 10px var(--token);
+            text-transform: uppercase;
+        }
+
+        /* Game Over Screen */
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(3, 7, 18, 0.95);
+            padding: 40px;
+            border: 4px dashed var(--scam);
+            text-align: center;
+            display: none;
+            z-index: 100;
+        }
+
+        .game-over h2 {
+            color: var(--scam);
+            text-shadow: 0 0 20px var(--scam);
+            font-size: 3rem;
+            margin-top: 0;
+        }
+
+        .game-over button {
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background: var(--player);
+            color: var(--bg);
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px var(--player);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">Airdrops: <span id="score">0</span></div>
+
+    <div id="game-container">
+        <div id="player"></div>
+        <div id="game-over" class="game-over">
+            <h2>RECKT!</h2>
+            <p>You hit a scam contract and lost everything.</p>
+            <p>Final Airdrops: <span id="finalScore" style="color:var(--token); font-weight:bold;"></span></p>
+            <button onclick="location.reload()">Reset Timeline</button>
+        </div>
+    </div>
+
+<script>
+    const container = document.getElementById('game-container');
+    const player = document.getElementById('player');
+    const scoreElement = document.getElementById('score');
+    const gameOverScreen = document.getElementById('game-over');
+    const finalScoreElement = document.getElementById('finalScore');
+
+    let score = 0;
+    let isGameOver = false;
+    let fallSpeedMultiplier = 1;
+
+    // Smooth movement logic (optimized)
+    let targetX = 0;
+    let currentX = 0;
+
+    container.addEventListener('mousemove', (e) => {
+        if (isGameOver) return;
+        // Calculate target X position relative to container
+        targetX = e.clientX - container.offsetLeft - (player.offsetWidth / 2);
+        
+        // Keep inside bounds
+        if (targetX < 0) targetX = 0;
+        if (targetX > container.offsetWidth - player.offsetWidth) targetX = container.offsetWidth - player.offsetWidth;
+    });
+
+    // Touch support for mobile
+    container.addEventListener('touchmove', (e) => {
+        if (isGameOver) return;
+        e.preventDefault(); // Prevent scrolling
+        targetX = e.touches[0].clientX - container.offsetLeft - (player.offsetWidth / 2);
+        
+        if (targetX < 0) targetX = 0;
+        if (targetX > container.offsetWidth - player.offsetWidth) targetX = container.offsetWidth - player.offsetWidth;
+    });
+
+    // Main animation loop for player movement
+    function animatePlayer() {
+        if (!isGameOver) {
+            // "Interpolation" for smooth sliding effect
+            currentX += (targetX - currentX) * 0.2; 
+            player.style.left = currentX + 'px';
+        }
+        requestAnimationFrame(animatePlayer);
+    }
+    animatePlayer();
+
+
+    function createFallingItem() {
+        if (isGameOver) return;
+
+        const item = document.createElement('div');
+        
+        // Decide item type
+        const isScam = Math.random() > 0.75; // 25% chance of being a scam
+        item.className = isScam ? 'falling-item scam' : 'falling-item token';
+        item.dataset.type = isScam ? 'scam' : 'token';
+
+        // Set starting position
+        item.style.left = Math.random() * (container.offsetWidth - 40) + 'px';
+        item.style.top = '-60px';
+        container.appendChild(item);
+
+        // Calculate fall speed (increases as score goes up)
+        let fallSpeed = (4 + (score / 5)) * fallSpeedMultiplier; 
+        if (fallSpeed > 15) fallSpeed = 15; // Speed cap
+        
+        const fallInterval = setInterval(() => {
+            if (isGameOver) {
+                clearInterval(fallInterval);
+                item.remove(); // Clear screen on game over
+                return;
+            }
+
+            let currentTop = parseFloat(item.style.top);
+            item.style.top = (currentTop + fallSpeed) + 'px';
+
+            // Optimized Collision Logic
+            const itemRect = item.getBoundingClientRect();
+            const playerRect = player.getBoundingClientRect();
+
+            if (
+                itemRect.bottom >= playerRect.top &&
+                itemRect.right >= playerRect.left &&
+                itemRect.left <= playerRect.right &&
+                itemRect.top <= playerRect.bottom
+            ) {
+                if (item.dataset.type === 'token') {
+                    // CATCH GREEN TOKEN
+                    score++;
+                    scoreElement.innerText = score;
+                    
+                    // Flash the UI for feedback
+                    scoreElement.style.color = '#fff';
+                    setTimeout(()=> scoreElement.style.color = 'var(--token)', 100);
+                    
+                    item.remove();
+                    clearInterval(fallInterval);
+                } else {
+                    // HIT RED SCAM
+                    endGame();
+                }
+            }
+
+            // Remove if it falls off bottom
+            if (currentTop > container.offsetHeight) {
+                item.remove();
+                clearInterval(fallInterval);
+            }
+        }, 16); // ~60fps movement
+    }
+
+    function endGame() {
+        isGameOver = true;
+        player.style.background = '#fff'; // Flash player white
+        player.style.boxShadow = '0 0 40px #fff';
+        
+        setTimeout(() => {
+            gameOverScreen.style.display = 'block';
+            finalScoreElement.innerText = score;
+        }, 500); // Small delay for dramatic effect
+    }
+
+    // Spawn items: start every 1000ms, getting faster
+    let spawnRate = 1000;
+    const spawnLoop = () => {
+        createFallingItem();
+        if (!isGameOver) {
+            spawnRate = Math.max(300, 1000 - (score * 20)); // Spawn faster as score increases
+            setTimeout(spawnLoop, spawnRate);
+        }
+    };
+    spawnLoop();
+
+</script>
+</body>
+</html>
