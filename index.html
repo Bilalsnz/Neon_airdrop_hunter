@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prime Airdrop Hunter: Neon Edition</title>
+    <title>Airdrop Hunter: Neon Edition</title>
     <style>
         :root {
             --player: #38bdf8;
@@ -15,7 +15,6 @@
 
         body {
             margin: 0;
-            /* Transformers Background */
             background-image: url('8f5d778054cacf99ffaba5882091de31.jpg');
             background-size: cover;
             background-position: center;
@@ -121,7 +120,6 @@
     <div id="ui">Airdrops: <span id="score">0</span></div>
 
     <audio id="bg-music" src="steve-jablonsky-autobots-reunite (1).mp3" loop preload="auto"></audio>
-    
     <audio id="sound-rekt" src="https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3" preload="auto"></audio>
 
     <div id="game-container">
@@ -149,15 +147,21 @@
     let targetX = 0;
     let currentX = 0;
 
-    // Start Autobot music on first interaction
-    window.addEventListener('touchstart', startMusic, { once: true });
-    window.addEventListener('mousedown', startMusic, { once: true });
-
+    // Aggressive music start logic
     function startMusic() {
         if (bgMusic.paused && !isGameOver) {
-            bgMusic.play().catch(e => console.log("Music blocked until tap"));
+            // Tells browser to play as much as is buffered immediately
+            bgMusic.play().then(() => {
+                console.log("Autobots music active");
+            }).catch(e => {
+                console.log("Audio still buffering...");
+            });
         }
     }
+
+    // Listen for interaction to trigger music
+    window.addEventListener('touchstart', startMusic, { once: true });
+    window.addEventListener('mousedown', startMusic, { once: true });
 
     container.addEventListener('mousemove', (e) => {
         if (isGameOver) return;
