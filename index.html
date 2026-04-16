@@ -6,23 +6,20 @@
     <title>Airdrop Hunter: Neon Edition</title>
     <style>
         :root {
-            /* Neon Color Palette */
-            --player: #38bdf8;  /* Vivid Blue */
-            --token: #22c55e;   /* Bright Green */
-            --scam: #ef4444;    /* Crimson Red */
-            --bg: #030712;      /* Near Black */
+            --player: #38bdf8;
+            --token: #22c55e;
+            --scam: #ef4444;
+            --bg: #030712;
             --text: #f1f5f9;
         }
 
         body {
             margin: 0;
-            /* Added your custom background image */
             background-image: url('8f5d778054cacf99ffaba5882091de31.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
-            background-color: var(--bg); /* Fallback color */
-            
+            background-color: var(--bg);
             color: var(--text);
             font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
@@ -32,12 +29,10 @@
             height: 100vh;
         }
 
-        /* Rainbow Cycling Border for the game world */
         #game-container {
             position: relative;
             width: 95vw;
             height: 85vh;
-            /* Lowered opacity to 0.4 so the background image shows through */
             background: rgba(17, 24, 39, 0.4); 
             border: 4px solid;
             border-image: linear-gradient(to bottom right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3) 1;
@@ -47,7 +42,6 @@
             overflow: hidden;
         }
 
-        /* The Player "Collector" */
         #player {
             position: absolute;
             bottom: 30px;
@@ -59,7 +53,6 @@
             transition: left 0.05s linear; 
         }
 
-        /* Falling Items Container */
         .falling-item {
             position: absolute;
             user-select: none;
@@ -79,7 +72,6 @@
             box-shadow: 0 0 15px var(--scam), 0 0 30px var(--scam);
         }
 
-        /* Score UI */
         #ui {
             padding: 15px;
             font-size: 2rem;
@@ -90,7 +82,6 @@
             z-index: 10;
         }
 
-        /* Game Over Screen */
         .game-over {
             position: absolute;
             top: 50%;
@@ -130,6 +121,11 @@
 
     <div id="ui">Airdrops: <span id="score">0</span></div>
 
+    <audio id="bg-music" src="https://docs.google.com/uc?export=download&id=1IZWKN5NVp65HUhZEx0QWSN24K_RWJfFr" loop preload="auto"></audio>
+    
+    <audio id="sound-collect" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3" preload="auto"></audio>
+    <audio id="sound-rekt" src="https://assets.mixkit.co/active_storage/sfx/1003/1003-preview.mp3" preload="auto"></audio>
+
     <div id="game-container">
         <div id="player"></div>
         <div id="game-over" class="game-over">
@@ -146,13 +142,22 @@
     const scoreElement = document.getElementById('score');
     const gameOverScreen = document.getElementById('game-over');
     const finalScoreElement = document.getElementById('finalScore');
+    
+    const bgMusic = document.getElementById('bg-music');
+    const collectSound = document.getElementById('sound-collect');
+    const rektSound = document.getElementById('sound-rekt');
 
     let score = 0;
     let isGameOver = false;
-    let fallSpeedMultiplier = 1;
-
     let targetX = 0;
     let currentX = 0;
+
+    // Start music on first click/touch (Browser requirement)
+    window.addEventListener('click', () => {
+        if (bgMusic.paused && !isGameOver) {
+            bgMusic.play().catch(() => {});
+        }
+    }, { once: true });
 
     container.addEventListener('mousemove', (e) => {
         if (isGameOver) return;
@@ -180,41 +185,33 @@
 
     function createFallingItem() {
         if (isGameOver) return;
-
         const item = document.createElement('div');
         const isScam = Math.random() > 0.75; 
         item.className = isScam ? 'falling-item scam' : 'falling-item token';
         item.dataset.type = isScam ? 'scam' : 'token';
-
         item.style.left = Math.random() * (container.offsetWidth - 40) + 'px';
         item.style.top = '-60px';
         container.appendChild(item);
 
-        let fallSpeed = (4 + (score / 5)) * fallSpeedMultiplier; 
-        if (fallSpeed > 15) fallSpeed = 15; 
-        
+        let fallSpeed = Math.min(15, (4 + (score / 5))); 
         const fallInterval = setInterval(() => {
             if (isGameOver) {
                 clearInterval(fallInterval);
                 item.remove();
                 return;
             }
-
             let currentTop = parseFloat(item.style.top);
             item.style.top = (currentTop + fallSpeed) + 'px';
 
             const itemRect = item.getBoundingClientRect();
             const playerRect = player.getBoundingClientRect();
 
-            if (
-                itemRect.bottom >= playerRect.top &&
-                itemRect.right >= playerRect.left &&
-                itemRect.left <= playerRect.right &&
-                itemRect.top <= playerRect.bottom
-            ) {
+            if (itemRect.bottom >= playerRect.top && itemRect.right >= playerRect.left && itemRect.left <= playerRect.right && itemRect.top <= playerRect.bottom) {
                 if (item.dataset.type === 'token') {
                     score++;
                     scoreElement.innerText = score;
+                    collectSound.currentTime = 0;
+                    collectSound.play().catch(() => {});
                     scoreElement.style.color = '#fff';
                     setTimeout(()=> scoreElement.style.color = 'var(--token)', 100);
                     item.remove();
@@ -223,7 +220,6 @@
                     endGame();
                 }
             }
-
             if (currentTop > container.offsetHeight) {
                 item.remove();
                 clearInterval(fallInterval);
@@ -233,9 +229,10 @@
 
     function endGame() {
         isGameOver = true;
+        bgMusic.pause();
+        rektSound.play().catch(() => {});
         player.style.background = '#fff'; 
         player.style.boxShadow = '0 0 40px #fff';
-        
         setTimeout(() => {
             gameOverScreen.style.display = 'block';
             finalScoreElement.innerText = score;
@@ -246,7 +243,7 @@
     const spawnLoop = () => {
         createFallingItem();
         if (!isGameOver) {
-            spawnRate = Math.max(300, 1000 - (score * 20)); 
+            spawnRate = Math.max(300, 1000 - (score * 28)); 
             setTimeout(spawnLoop, spawnRate);
         }
     };
