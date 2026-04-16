@@ -29,6 +29,16 @@
             height: 100vh;
         }
 
+        #ui {
+            padding: 15px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--token);
+            text-shadow: 0 0 10px var(--token);
+            text-transform: uppercase;
+            z-index: 10;
+        }
+
         #game-container {
             position: relative;
             width: 95vw;
@@ -37,7 +47,6 @@
             border: 4px solid;
             border-image: linear-gradient(to bottom right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3) 1;
             box-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
-            margin-top: 10px;
             cursor: none; 
             overflow: hidden;
         }
@@ -55,7 +64,6 @@
 
         .falling-item {
             position: absolute;
-            user-select: none;
             width: 30px;
             height: 30px;
             border-radius: 5px;
@@ -72,16 +80,6 @@
             box-shadow: 0 0 15px var(--scam), 0 0 30px var(--scam);
         }
 
-        #ui {
-            padding: 15px;
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--token);
-            text-shadow: 0 0 10px var(--token);
-            text-transform: uppercase;
-            z-index: 10;
-        }
-
         .game-over {
             position: absolute;
             top: 50%;
@@ -93,13 +91,14 @@
             text-align: center;
             display: none;
             z-index: 100;
+            width: 80%;
         }
 
         .game-over h2 {
             color: var(--scam);
             text-shadow: 0 0 20px var(--scam);
-            font-size: 3rem;
-            margin-top: 0;
+            font-size: 2.5rem;
+            margin: 0;
         }
 
         .game-over button {
@@ -113,7 +112,6 @@
             font-family: inherit;
             font-weight: bold;
             text-transform: uppercase;
-            box-shadow: 0 0 15px var(--player);
         }
     </style>
 </head>
@@ -121,18 +119,16 @@
 
     <div id="ui">Airdrops: <span id="score">0</span></div>
 
-    <audio id="bg-music" src="https://docs.google.com/uc?export=download&id=1IZWKN5NVp65HUhZEx0QWSN24K_RWJfFr" loop preload="auto"></audio>
-    
-    <audio id="sound-collect" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3" preload="auto"></audio>
-    <audio id="sound-rekt" src="https://assets.mixkit.co/active_storage/sfx/1003/1003-preview.mp3" preload="auto"></audio>
+    <audio id="bg-music" src="https://docs.google.com/uc?export=download&id=1IZWKN5NVp65HUhZEx0QWSN24K_RWJfFr" loop></audio>
+    <audio id="sound-rekt" src="https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3" preload="auto"></audio>
 
     <div id="game-container">
         <div id="player"></div>
         <div id="game-over" class="game-over">
             <h2>RECKT!</h2>
-            <p>You hit a scam contract and lost everything.</p>
+            <p>You hit a scam contract and lost your bag.</p>
             <p>Final Airdrops: <span id="finalScore" style="color:var(--token); font-weight:bold;"></span></p>
-            <button onclick="location.reload()">Reset Timeline</button>
+            <button onclick="location.reload()">Try Again</button>
         </div>
     </div>
 
@@ -144,7 +140,6 @@
     const finalScoreElement = document.getElementById('finalScore');
     
     const bgMusic = document.getElementById('bg-music');
-    const collectSound = document.getElementById('sound-collect');
     const rektSound = document.getElementById('sound-rekt');
 
     let score = 0;
@@ -152,27 +147,33 @@
     let targetX = 0;
     let currentX = 0;
 
-    // Start music on first click/touch (Browser requirement)
-    window.addEventListener('click', () => {
+    // Start Transformers music on first interaction
+    window.addEventListener('touchstart', startMusic, { once: true });
+    window.addEventListener('mousedown', startMusic, { once: true });
+
+    function startMusic() {
         if (bgMusic.paused && !isGameOver) {
             bgMusic.play().catch(() => {});
         }
-    }, { once: true });
+    }
 
     container.addEventListener('mousemove', (e) => {
         if (isGameOver) return;
         targetX = e.clientX - container.offsetLeft - (player.offsetWidth / 2);
-        if (targetX < 0) targetX = 0;
-        if (targetX > container.offsetWidth - player.offsetWidth) targetX = container.offsetWidth - player.offsetWidth;
+        limitPlayer();
     });
 
     container.addEventListener('touchmove', (e) => {
         if (isGameOver) return;
         e.preventDefault(); 
         targetX = e.touches[0].clientX - container.offsetLeft - (player.offsetWidth / 2);
+        limitPlayer();
+    });
+
+    function limitPlayer() {
         if (targetX < 0) targetX = 0;
         if (targetX > container.offsetWidth - player.offsetWidth) targetX = container.offsetWidth - player.offsetWidth;
-    });
+    }
 
     function animatePlayer() {
         if (!isGameOver) {
@@ -189,11 +190,12 @@
         const isScam = Math.random() > 0.75; 
         item.className = isScam ? 'falling-item scam' : 'falling-item token';
         item.dataset.type = isScam ? 'scam' : 'token';
-        item.style.left = Math.random() * (container.offsetWidth - 40) + 'px';
+        item.style.left = Math.random() * (container.offsetWidth - 30) + 'px';
         item.style.top = '-60px';
         container.appendChild(item);
 
-        let fallSpeed = Math.min(15, (4 + (score / 5))); 
+        let fallSpeed = Math.min(12, (4 + (score / 8))); 
+        
         const fallInterval = setInterval(() => {
             if (isGameOver) {
                 clearInterval(fallInterval);
@@ -210,10 +212,7 @@
                 if (item.dataset.type === 'token') {
                     score++;
                     scoreElement.innerText = score;
-                    collectSound.currentTime = 0;
-                    collectSound.play().catch(() => {});
-                    scoreElement.style.color = '#fff';
-                    setTimeout(()=> scoreElement.style.color = 'var(--token)', 100);
+                    // Collection sound removed here
                     item.remove();
                     clearInterval(fallInterval);
                 } else {
@@ -230,20 +229,20 @@
     function endGame() {
         isGameOver = true;
         bgMusic.pause();
+        rektSound.currentTime = 0;
         rektSound.play().catch(() => {});
         player.style.background = '#fff'; 
-        player.style.boxShadow = '0 0 40px #fff';
         setTimeout(() => {
             gameOverScreen.style.display = 'block';
             finalScoreElement.innerText = score;
-        }, 500); 
+        }, 400); 
     }
 
     let spawnRate = 1000;
     const spawnLoop = () => {
-        createFallingItem();
         if (!isGameOver) {
-            spawnRate = Math.max(300, 1000 - (score * 28)); 
+            createFallingItem();
+            spawnRate = Math.max(350, 1000 - (score * 15)); 
             setTimeout(spawnLoop, spawnRate);
         }
     };
