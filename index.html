@@ -115,7 +115,7 @@
         }
     </style>
 </head>
-<body>
+<body onclick="startMusic()" ontouchstart="startMusic()">
 
     <div id="ui">Airdrops: <span id="score">0</span></div>
 
@@ -138,7 +138,6 @@
     const scoreElement = document.getElementById('score');
     const gameOverScreen = document.getElementById('game-over');
     const finalScoreElement = document.getElementById('finalScore');
-    
     const bgMusic = document.getElementById('bg-music');
     const rektSound = document.getElementById('sound-rekt');
 
@@ -146,31 +145,28 @@
     let isGameOver = false;
     let targetX = 0;
     let currentX = 0;
+    let musicStarted = false;
 
-    // Aggressive music start logic
+    // Direct Music Trigger
     function startMusic() {
-        if (bgMusic.paused && !isGameOver) {
-            // Tells browser to play as much as is buffered immediately
+        if (!musicStarted && !isGameOver) {
             bgMusic.play().then(() => {
-                console.log("Autobots music active");
-            }).catch(e => {
-                console.log("Audio still buffering...");
-            });
+                musicStarted = true;
+            }).catch(e => console.log("Buffering..."));
         }
     }
 
-    // Listen for interaction to trigger music
-    window.addEventListener('touchstart', startMusic, { once: true });
-    window.addEventListener('mousedown', startMusic, { once: true });
-
+    // Controls
     container.addEventListener('mousemove', (e) => {
         if (isGameOver) return;
+        startMusic(); // Trigger on move too
         targetX = e.clientX - container.offsetLeft - (player.offsetWidth / 2);
         limitPlayer();
     });
 
     container.addEventListener('touchmove', (e) => {
         if (isGameOver) return;
+        startMusic(); // Trigger on touch move
         e.preventDefault(); 
         targetX = e.touches[0].clientX - container.offsetLeft - (player.offsetWidth / 2);
         limitPlayer();
