@@ -16,9 +16,15 @@
 
         body {
             margin: 0;
-            background: var(--bg);
+            /* Added your custom background image */
+            background-image: url('8f5d778054cacf99ffaba5882091de31.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-color: var(--bg); /* Fallback color */
+            
             color: var(--text);
-            font-family: 'Courier New', Courier, monospace; /* Arcade Font Style */
+            font-family: 'Courier New', Courier, monospace;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -31,12 +37,13 @@
             position: relative;
             width: 95vw;
             height: 85vh;
-            background: rgba(17, 24, 39, 0.8);
+            /* Lowered opacity to 0.4 so the background image shows through */
+            background: rgba(17, 24, 39, 0.4); 
             border: 4px solid;
             border-image: linear-gradient(to bottom right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3) 1;
             box-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
             margin-top: 10px;
-            cursor: none; /* Hide cursor for immersion */
+            cursor: none; 
             overflow: hidden;
         }
 
@@ -44,13 +51,12 @@
         #player {
             position: absolute;
             bottom: 30px;
-            width: 100px; /* Wider for easier play */
+            width: 100px; 
             height: 15px;
             background: var(--player);
-            border-radius: 50px; /* Rounded pill shape */
-            /* Intense Neon Glow */
+            border-radius: 50px; 
             box-shadow: 0 0 20px var(--player), 0 0 40px var(--player);
-            transition: left 0.05s linear; /* Smooth movement */
+            transition: left 0.05s linear; 
         }
 
         /* Falling Items Container */
@@ -60,16 +66,14 @@
             width: 30px;
             height: 30px;
             border-radius: 5px;
-            transform: rotate(45deg); /* Diamond shape */
+            transform: rotate(45deg); 
         }
 
-        /* Green Token (Good) */
         .token {
             background: var(--token);
             box-shadow: 0 0 15px var(--token), 0 0 30px var(--token);
         }
 
-        /* Red Scam Flag (Bad) */
         .scam {
             background: var(--scam);
             box-shadow: 0 0 15px var(--scam), 0 0 30px var(--scam);
@@ -83,6 +87,7 @@
             color: var(--token);
             text-shadow: 0 0 10px var(--token);
             text-transform: uppercase;
+            z-index: 10;
         }
 
         /* Game Over Screen */
@@ -146,34 +151,26 @@
     let isGameOver = false;
     let fallSpeedMultiplier = 1;
 
-    // Smooth movement logic (optimized)
     let targetX = 0;
     let currentX = 0;
 
     container.addEventListener('mousemove', (e) => {
         if (isGameOver) return;
-        // Calculate target X position relative to container
         targetX = e.clientX - container.offsetLeft - (player.offsetWidth / 2);
-        
-        // Keep inside bounds
         if (targetX < 0) targetX = 0;
         if (targetX > container.offsetWidth - player.offsetWidth) targetX = container.offsetWidth - player.offsetWidth;
     });
 
-    // Touch support for mobile
     container.addEventListener('touchmove', (e) => {
         if (isGameOver) return;
-        e.preventDefault(); // Prevent scrolling
+        e.preventDefault(); 
         targetX = e.touches[0].clientX - container.offsetLeft - (player.offsetWidth / 2);
-        
         if (targetX < 0) targetX = 0;
         if (targetX > container.offsetWidth - player.offsetWidth) targetX = container.offsetWidth - player.offsetWidth;
     });
 
-    // Main animation loop for player movement
     function animatePlayer() {
         if (!isGameOver) {
-            // "Interpolation" for smooth sliding effect
             currentX += (targetX - currentX) * 0.2; 
             player.style.left = currentX + 'px';
         }
@@ -181,37 +178,31 @@
     }
     animatePlayer();
 
-
     function createFallingItem() {
         if (isGameOver) return;
 
         const item = document.createElement('div');
-        
-        // Decide item type
-        const isScam = Math.random() > 0.75; // 25% chance of being a scam
+        const isScam = Math.random() > 0.75; 
         item.className = isScam ? 'falling-item scam' : 'falling-item token';
         item.dataset.type = isScam ? 'scam' : 'token';
 
-        // Set starting position
         item.style.left = Math.random() * (container.offsetWidth - 40) + 'px';
         item.style.top = '-60px';
         container.appendChild(item);
 
-        // Calculate fall speed (increases as score goes up)
         let fallSpeed = (4 + (score / 5)) * fallSpeedMultiplier; 
-        if (fallSpeed > 15) fallSpeed = 15; // Speed cap
+        if (fallSpeed > 15) fallSpeed = 15; 
         
         const fallInterval = setInterval(() => {
             if (isGameOver) {
                 clearInterval(fallInterval);
-                item.remove(); // Clear screen on game over
+                item.remove();
                 return;
             }
 
             let currentTop = parseFloat(item.style.top);
             item.style.top = (currentTop + fallSpeed) + 'px';
 
-            // Optimized Collision Logic
             const itemRect = item.getBoundingClientRect();
             const playerRect = player.getBoundingClientRect();
 
@@ -222,52 +213,44 @@
                 itemRect.top <= playerRect.bottom
             ) {
                 if (item.dataset.type === 'token') {
-                    // CATCH GREEN TOKEN
                     score++;
                     scoreElement.innerText = score;
-                    
-                    // Flash the UI for feedback
                     scoreElement.style.color = '#fff';
                     setTimeout(()=> scoreElement.style.color = 'var(--token)', 100);
-                    
                     item.remove();
                     clearInterval(fallInterval);
                 } else {
-                    // HIT RED SCAM
                     endGame();
                 }
             }
 
-            // Remove if it falls off bottom
             if (currentTop > container.offsetHeight) {
                 item.remove();
                 clearInterval(fallInterval);
             }
-        }, 16); // ~60fps movement
+        }, 16); 
     }
 
     function endGame() {
         isGameOver = true;
-        player.style.background = '#fff'; // Flash player white
+        player.style.background = '#fff'; 
         player.style.boxShadow = '0 0 40px #fff';
         
         setTimeout(() => {
             gameOverScreen.style.display = 'block';
             finalScoreElement.innerText = score;
-        }, 500); // Small delay for dramatic effect
+        }, 500); 
     }
 
-    // Spawn items: start every 1000ms, getting faster
     let spawnRate = 1000;
     const spawnLoop = () => {
         createFallingItem();
         if (!isGameOver) {
-            spawnRate = Math.max(300, 1000 - (score * 20)); // Spawn faster as score increases
+            spawnRate = Math.max(300, 1000 - (score * 20)); 
             setTimeout(spawnLoop, spawnRate);
         }
     };
     spawnLoop();
-
 </script>
 </body>
 </html>
